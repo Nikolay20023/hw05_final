@@ -1,0 +1,63 @@
+{% extends 'base.html' %}
+{% block title %}{% endblock  %}
+{% block content %}
+{% load thumbnail %}
+<!DOCTYPE html>
+<html lang="ru"> 
+  <body>       
+    <main>
+      <div class="container py-5">
+        {% csrf_token %}
+        {% for post in page_obj %}
+        {% if forloop.first %}
+        <div class="mb-5">        
+          <h1>Все посты пользователя: {{post.author.get_full_name}} </h1>
+          <h3>Всего постов: {{posts.count}}  </h3>
+          {% if following %}
+            <a
+              class="btn btn-lg btn-light"
+              href="{% url 'posts:profile_unfollow' author.username %}" role="button"
+            >
+              Отписаться
+            </a>
+          {% else %}
+              <a
+                class="btn btn-lg btn-primary"
+                href="{% url 'posts:profile_follow' author.username %}" role="button"
+              >
+                Подписаться
+              </a>
+          {% endif %}
+        </div>
+        {% endif %}   
+        <article>  
+          <ul>
+            <li>
+              Автор: {{post.author.get_full_name}}
+              <a href="{% url 'posts:profile' post.author %}">все посты пользователя </a>
+            </li>
+            <li>
+              Дата публикации: {{post.pub_date|date:'d E Y'}} 
+            </li>
+          </ul>
+          <p>
+            {{post.text}}
+          </p>
+          {% thumbnail post.image "960x339" crop="center" upscale=True as im %}
+            <img class="card-img my-2" src="{{ im.url }}">
+          {% endthumbnail %}
+          <a href="{% url 'posts:post_detail' post.pk %}">подробная информация {{post.pk}}</a><br>
+          {% if post.group %} 
+          <a href= "{% url 'posts:group_posts' post.group.slug %}">все записи группы {{post.group.title}}</a>
+          {% endif %} 
+          {% if not forloop.last %}<hr>{% endif %}
+        {% endfor %}      
+        </article>       
+        <!-- Остальные посты. после последнего нет черты -->
+        <!-- Здесь подключён паджинатор -->  
+      </div>
+      {% include 'posts/includes/paginator.html' %}
+    </main>
+  </body>
+</html>
+{% endblock  %}
