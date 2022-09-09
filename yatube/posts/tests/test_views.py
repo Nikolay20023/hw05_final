@@ -3,7 +3,7 @@ from django.contrib.auth import get_user_model
 from django.test import Client, TestCase
 from django.urls import reverse
 from django.core.files.uploadedfile import SimpleUploadedFile
-
+from posts.forms import PostForm
 from posts.models import Post, Group
 
 User = get_user_model()
@@ -41,8 +41,8 @@ class PostPagesTest(TestCase):
 
     def setUp(self) -> None:
         self.user = User.objects.create_user(username='StasBasov')
-        self.auth_client = Client()
-        self.auth_client.force_login(self.user)
+        self.auth = Client()
+        self.auth.force_login(self.user)
         self.author_post = Client()
         self.author_post.force_login(self.post.author)
 
@@ -87,11 +87,11 @@ class PostPagesTest(TestCase):
             self.assertEqual(post.image, PostPagesTest.post.image)
 
     def test_index_page_show_correct_context(self):
-        response = self.auth_client.get(reverse('posts:index'))
+        response = self.auth.get(reverse('posts:index'))
         self.check_context_contains_page_or_post(response.context)
 
     def test_group_post_page_show_correct_context(self):
-        response = self.auth_client.get(reverse('posts:group_posts', kwargs={
+        response = self.auth.get(reverse('posts:group_posts', kwargs={
             'slug': self.group.slug
         }))
         self.check_context_contains_page_or_post(response.context)
@@ -101,7 +101,7 @@ class PostPagesTest(TestCase):
         self.assertEqual(group.description, self.group.description)
 
     def test_profile_page_show_correct_context(self):
-        response = self.auth_client.get(reverse('posts:profile', kwargs={
+        response = self.auth.get(reverse('posts:profile', kwargs={
             'username': self.post.author
         }))
         self.check_context_contains_page_or_post(response.context)
@@ -113,12 +113,14 @@ class PostPagesTest(TestCase):
             reverse('posts:post_edit', kwargs={
                 'post_id': self.post.id
             }): True,
+            # так вод is_edit
             reverse('posts:post_create'): False
         }
+        form = PostForm()
         for url, bool in template_pages_name.items():
             with self.subTest(url=url):
                 response = self.author_post.get(url)
-                self.assertIn('form', response.context)
+                self.assertTrue(form, response.context['form'])
                 self.assertEqual(response.context['is_edit'], bool)
 
     def test_post_detail_page_show_correct_context(self):
@@ -131,14 +133,31 @@ class PostPagesTest(TestCase):
         self.assertEqual(response.context['author'], self.user_author)
 
     def test_casche(self):
-        response = self.auth_client.get(reverse('posts:index'))
-        count_objects = len(response.context['page_obj'])
-        self.assertTrue(count_objects > 0)
+        Post.objects.create(
+            text='test',
+            author=self.user_author,
+            group=self.group,
+            image=self.uploaded
+        )
+        response = self.auth.get(reverse('posts:index'))
         post = Post.objects.all()
-        post.delete()
-        self.assertTrue(Post.objects.count, 0)
-        response = self.auth_client.get(reverse('posts:index'))
-        self.assertTrue(response.context is None)
+        post.delete
+        response_2 = self.auth.get(reverse('posts:index'))
+        self.assertTrue(
+            response.content,
+            response_2.content
+        )
+        cache.clear()
+        response_3 = self.auth.get(reverse('posts:index'))
+        self.assertTrue(
+            response_2.content != response_3.content
+        )
+
+    '''def test_profile_follow_ebasdiaqfewegfws(self):
+        response = self.auth.get(reverse('posts:profile_unfollow', kwargs={
+            'username': self.post.author
+        }))
+        pass #aD gserhewtknkmlaw4lnwyt'''
 
 
 class PaginatorViewTest(TestCase):

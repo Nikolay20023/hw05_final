@@ -50,7 +50,6 @@ class PostCreateFormTest(TestCase):
             slug='test_slug_1',
             description='Описанsdие',
         )
-        post = Post.objects.first()
         response = self.guest_client.post(
             reverse('posts:post_edit', kwargs={
                 'post_id': post.id
@@ -61,7 +60,7 @@ class PostCreateFormTest(TestCase):
         self.assertEqual(response.status_code, HTTPStatus.OK)
         post = Post.objects.first()
         self.assertEqual(Post.objects.count(), 1)
-        self.assertEqual(post.text, 'dsdsdsada')
+        self.assertEqual(post.text, new_post_text)
         self.assertEqual(post.group, group_today)
 
     def test_comment_on_post_page(self):
@@ -131,19 +130,13 @@ class PostCreateFormTest(TestCase):
             },
             follow=True
         )
-        post = Post.objects.create(
-            text='тестовый текс',
-            author=self.user,
-            group=self.group,
-            image=uploaded
-        )
         self.assertEqual(response.status_code, HTTPStatus.OK)
-        self.assertEqual(Post.objects.count(), post_count + 2)
+        self.assertEqual(Post.objects.count(), post_count + 1)
         post_2 = Post.objects.first()
-        self.assertEqual(post_2.text, 'тестовый текс')
+        self.assertEqual(post_2.text, 'Test_post')
         self.assertEqual(post_2.author, self.user)
         self.assertEqual(post_2.group, self.group)
-        self.assertEqual(post_2.image, post.image)
+        self.assertIn(uploaded.name, post_2.image.name)
 
     def test_auth_user_cant_publish_post(self):
         response = self.anauthorized_client.post(
