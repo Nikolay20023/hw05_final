@@ -4,7 +4,7 @@ from django.test import Client, TestCase
 from django.urls import reverse
 from django.core.files.uploadedfile import SimpleUploadedFile
 from posts.forms import PostForm
-from posts.models import Post, Group
+from posts.models import Post, Group, Follow
 
 User = get_user_model()
 
@@ -116,12 +116,15 @@ class PostPagesTest(TestCase):
             # так вод is_edit
             reverse('posts:post_create'): False
         }
-        form = PostForm()
-        for url, bool in template_pages_name.items():
+        for url, is_edit_value in template_pages_name.items():
             with self.subTest(url=url):
                 response = self.author_post.get(url)
-                self.assertTrue(form, response.context['form'])
-                self.assertEqual(response.context['is_edit'], bool)
+                self.assertIn('form', response.context)
+                self.assertIsInstance(response.context['form'], PostForm)
+                self.assertIn('is_edit', response.context)
+                is_edit = response.context['is_edit']
+                self.assertIsInstance(is_edit, bool)
+                self.assertEqual(is_edit, is_edit_value)
 
     def test_post_detail_page_show_correct_context(self):
         response = self.author_post.get(reverse('posts:post_detail', kwargs={
@@ -133,31 +136,62 @@ class PostPagesTest(TestCase):
         self.assertEqual(response.context['author'], self.user_author)
 
     def test_casche(self):
-        Post.objects.create(
+        post = Post.objects.create(
             text='test',
             author=self.user_author,
             group=self.group,
             image=self.uploaded
         )
         response = self.auth.get(reverse('posts:index'))
-        post = Post.objects.all()
         post.delete
         response_2 = self.auth.get(reverse('posts:index'))
-        self.assertTrue(
+        self.assertEqual(
             response.content,
             response_2.content
         )
         cache.clear()
         response_3 = self.auth.get(reverse('posts:index'))
-        self.assertTrue(
-            response_2.content != response_3.content
+        self.assertNotEqual(
+            response_2.content, response_3.content
         )
 
-    '''def test_profile_follow_ebasdiaqfewegfws(self):
-        response = self.auth.get(reverse('posts:profile_unfollow', kwargs={
-            'username': self.post.author
+    def test_profile_follow_(self):
+        count = Follow.objects.count()
+        self.auth.get(reverse('posts:profile_follow', kwargs={
+            'username': self.post.author.username
+        }),
+            data={'author': self.author_post, 'user': self.user})
+        self.assertEqual(Follow.objects.count(), count + 1)
+
+    def test_profile_unfollow_(self):
+        Follow.objects.create(
+            author=self.post.author,
+            user=self.user
+        )
+        self.auth.get(reverse('posts:profile_unfollow', kwargs={
+            'username': self.post.author.username
         }))
-        pass #aD gserhewtknkmlaw4lnwyt'''
+        count = Follow.objects.count()
+        self.assertEqual(Follow.objects.count(), count)
+
+    def test_image(self):
+        templates_pages_name = {
+            reverse('posts:index'): 'posts/index.html',
+            reverse(
+                'posts:group_posts', kwargs={
+                    'slug': self.group.slug
+                }): 'posts/group_list.html',
+            reverse('posts:profile', kwargs={
+                'username': self.post.author
+            }): 'posts/profile.html',
+            reverse('posts:post_detail', kwargs={
+                'post_id': self.post.id
+            }): 'posts/post_detail.html'
+        }
+        for reverse_name in templates_pages_name.keys():
+            with self.subTest(reverse_name=reverse_name):
+                response = self.author_post.get(reverse_name)
+                self.assertContains(response, '<img')
 
 
 class PaginatorViewTest(TestCase):
