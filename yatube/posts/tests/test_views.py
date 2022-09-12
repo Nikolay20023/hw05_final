@@ -143,7 +143,7 @@ class PostPagesTest(TestCase):
             image=self.uploaded
         )
         response = self.auth.get(reverse('posts:index'))
-        post.delete
+        post.delete()
         response_2 = self.auth.get(reverse('posts:index'))
         self.assertEqual(
             response.content,
@@ -156,12 +156,15 @@ class PostPagesTest(TestCase):
         )
 
     def test_profile_follow_(self):
-        count = Follow.objects.count()
         self.auth.get(reverse('posts:profile_follow', kwargs={
             'username': self.post.author.username
         }),
             data={'author': self.author_post, 'user': self.user})
-        self.assertEqual(Follow.objects.count(), count + 1)
+        self.assertEqual(Follow.objects.count(), 1)
+        self.assertTrue(Follow.objects.filter(
+            author=self.post.author,
+            user=self.user
+        ).exists())
 
     def test_profile_unfollow_(self):
         Follow.objects.create(
@@ -171,8 +174,7 @@ class PostPagesTest(TestCase):
         self.auth.get(reverse('posts:profile_unfollow', kwargs={
             'username': self.post.author.username
         }))
-        count = Follow.objects.count()
-        self.assertEqual(Follow.objects.count(), count)
+        self.assertEqual(Follow.objects.count(), 0)
 
     def test_image(self):
         templates_pages_name = {
