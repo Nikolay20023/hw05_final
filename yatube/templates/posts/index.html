@@ -11,7 +11,7 @@
   {% for post in page_obj %}
     {% if post.group %}   
       <a href="{% url 'posts:group_posts' post.group.slug %}">
-        все записи группы
+        все записи группы {{post.group.title}}
       </a>
     {% endif %}
     <ul>

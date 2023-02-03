@@ -11,7 +11,7 @@
         {% for post in page_obj %}
         {% if forloop.first %}
         <div class="mb-5">        
-          <h1>Все посты пользователя: {{post.author.get_full_name}} </h1>
+          <h1>Все посты пользователя: {{post.author.get_full_names}} </h1>
           <h3>Всего постов: {{posts.count}}  </h3>
           {% if following %}
             <a
